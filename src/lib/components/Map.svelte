@@ -6,7 +6,7 @@
 	let mapElement = $state();
 	let map = $state();
 	let L = $state();
-	let trackLayers = [];
+	let trackGroup;
 	let heatLayer;
 
 	async function initializeMap() {
@@ -18,17 +18,29 @@
 
 		L = leaflet.default;
 		map = L.map(mapElement).setView([0, 0], 2);
-		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			attribution: '© OpenStreetMap contributors'
-		}).addTo(map);
 
-		// Adjusted heatmap settings
+		// Base layers
+		const baseLayers = {
+			OpenStreetMap: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: '© OpenStreetMap contributors'
+			}),
+			OpenTopoMap: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+				attribution: '© OpenTopoMap contributors'
+			})
+		};
+
+		// Add default base layer
+		baseLayers['OpenStreetMap'].addTo(map);
+
+		// Initialize overlay layers
+		trackGroup = L.featureGroup().addTo(map);
+
 		heatLayer = L.heatLayer([], {
-			radius: 15, // Smaller radius
-			blur: 20, // More blur
-			maxZoom: 16, // Higher maxZoom for better scale independence
-			minOpacity: 0.3, // Minimum opacity
-			max: 0.3, // Lower max value to reduce intensity
+			radius: 15,
+			blur: 20,
+			maxZoom: 16,
+			minOpacity: 0.3,
+			max: 0.3,
 			gradient: {
 				0.2: 'rgba(0,0,255,0.4)',
 				0.4: 'rgba(0,255,0,0.4)',
@@ -37,38 +49,61 @@
 			}
 		}).addTo(map);
 
+		// Add layer controls with fixed pane
+		const overlayLayers = {
+			Tracks: trackGroup,
+			Heatmap: heatLayer
+		};
+
+		L.control
+			.layers(baseLayers, overlayLayers, {
+				position: 'topright',
+				collapsed: false // Keep the control always expanded
+			})
+			.addTo(map);
+
 		// Update radius based on zoom level
 		map.on('zoomend', () => {
 			const currentZoom = map.getZoom();
-			const newRadius = Math.max(5, 25 - currentZoom); // Adjust radius based on zoom
-			heatLayer.setOptions({ radius: newRadius });
+			const newRadius = Math.max(5, 25 - currentZoom);
+			if (map.hasLayer(heatLayer)) {
+				// Only update if layer is visible
+				heatLayer.setOptions({ radius: newRadius });
+			}
+		});
+
+		// Add event handler for overlay changes
+		map.on('overlayadd overlayremove', (e) => {
+			if (e.type === 'overlayadd') {
+				e.layer.bringToFront();
+			}
 		});
 	}
 
 	function renderTracks() {
 		if (!map || !L) return;
 
-		// Clear existing layers
-		trackLayers.forEach((layer) => layer.remove());
-		trackLayers = [];
+		// Clear existing tracks
+		trackGroup.clearLayers();
 
 		const heatPoints = [];
 
 		tracks.forEach((track) => {
-			// Thicker, more visible track lines
+			// Create track lines
 			const trackLine = L.geoJSON(track, {
 				style: {
 					color: '#0066ff',
-					weight: 2.5, // Increased line weight
-					opacity: 0.4, // Slightly increased opacity
-					smoothFactor: 1.5 // Smooths the line a bit
+					weight: 2.5,
+					opacity: 0.4,
+					smoothFactor: 1.5
 				}
-			}).addTo(map);
-			trackLayers.push(trackLine);
+			});
 
-			// Reduced point intensity for heatmap
+			trackGroup.addLayer(trackLine);
+
+			// Add heat points
 			track.geometry.coordinates.forEach((coord) => {
-				heatPoints.push([coord[1], coord[0], 0.05]); // Reduced intensity per point
+				heatPoints.push([coord[1], coord[0], 0.05]);
 			});
 		});
 
@@ -77,8 +112,7 @@
 		}
 
 		if (tracks.length > 0) {
-			const bounds = L.featureGroup(trackLayers).getBounds();
-			map.fitBounds(bounds);
+			map.fitBounds(trackGroup.getBounds());
 		}
 	}
 

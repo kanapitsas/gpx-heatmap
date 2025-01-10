@@ -33,6 +33,7 @@
 <style>
 	.progress-circle {
 		position: absolute;
+		backdrop-filter: blur(4px);
 		bottom: 100px;
 		left: 20px;
 		border-radius: 50%;

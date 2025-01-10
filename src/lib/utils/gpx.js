@@ -1,7 +1,9 @@
 import { gpx } from '@tmcw/togeojson';
+import { simplifyTrack } from './simplify';
 
-export async function processGpxFiles(files) {
+export async function processGpxFiles(files, progressCallback) {
 	const tracks = [];
+	let processed = 0;
 
 	for (const file of files) {
 		try {
@@ -11,14 +13,15 @@ export async function processGpxFiles(files) {
 
 			const geoJson = gpx(gpxDoc);
 
-			// Extract tracks from the GeoJSON
 			if (geoJson.features) {
-				tracks.push(
-					...geoJson.features.filter(
-						(f) => f.geometry.type === 'LineString' || f.geometry.type === 'MultiLineString'
-					)
-				);
+				const simplifiedTracks = geoJson.features
+					.filter((f) => f.geometry.type === 'LineString' || f.geometry.type === 'MultiLineString')
+					.map((track) => simplifyTrack(track));
+				tracks.push(...simplifiedTracks);
 			}
+
+			processed++;
+			progressCallback((processed / files.length) * 100);
 		} catch (error) {
 			console.error(`Error processing ${file.name}:`, error);
 		}

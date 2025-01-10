@@ -146,9 +146,22 @@
 	.map {
 		width: 100%;
 		height: 100%;
+		transition: opacity 0.3s ease;
 	}
 
+	/* Fade in map when loaded */
 	:global(.leaflet-container) {
 		height: 100%;
+		opacity: 0;
+		animation: fadeIn 0.5s ease forwards;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 </style>

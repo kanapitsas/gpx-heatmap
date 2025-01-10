@@ -2,10 +2,10 @@
 	import Map from '$lib/components/Map.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import ProgressBar from '$lib/components/ProgressBar.svelte';
+	import TrackCount from '$lib/components/TrackCount.svelte';
 	import { processGpxFiles } from '$lib/utils/gpx';
 
 	let tracks = $state([]);
-	let map;
 	let progress = $state(0);
 	let processing = $state(false);
 
@@ -13,7 +13,7 @@
 		processing = true;
 		progress = 0;
 
-		const newTracks = await processGpxFiles(files.detail, (p) => {
+		const newTracks = await processGpxFiles(files, (p) => {
 			progress = p;
 		});
 
@@ -21,38 +21,40 @@
 		processing = false;
 	}
 
-	function handleClear() {
+	function clearTracks() {
 		tracks = [];
 	}
 </script>
 
 <main>
-	<div class="controls">
-		<FileUpload on:files={handleFiles} />
-		<button onclick={handleClear}>Clear All</button>
-		<p>{tracks.length} tracks loaded</p>
-		<ProgressBar {progress} show={processing} />
-	</div>
-
 	<div class="map-container">
-		<Map bind:this={map} {tracks} />
+		<Map {tracks} />
 	</div>
+	<div class="controls">
+		<FileUpload onclick={handleFiles} />
+		<TrackCount count={tracks.length} onclick={clearTracks} />
+	</div>
+	<ProgressBar {progress} show={processing} />
 </main>
 
 <style>
 	main {
 		width: 100%;
 		height: 100vh;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.controls {
-		padding: 1rem;
+		position: relative;
 	}
 
 	.map-container {
-		flex: 1;
-		min-height: 0;
+		width: 100%;
+		height: 100%;
+	}
+
+	.controls {
+		position: absolute;
+		bottom: 20px;
+		left: 20px;
+		z-index: 1000;
+		display: flex;
+		gap: 10px;
 	}
 </style>

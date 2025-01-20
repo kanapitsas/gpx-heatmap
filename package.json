@@ -26,6 +26,7 @@
 		"vite": "^5.4.11"
 	},
 	"dependencies": {
+		"@sveltejs/adapter-vercel": "^5.5.3",
 		"@tmcw/togeojson": "^6.0.0",
 		"leaflet": "^1.9.4",
 		"leaflet.heat": "^0.2.0"
